@@ -1,0 +1,50 @@
+# Model roster. All models are ~1 GB (Q4) so they load fast and can stay resident.
+# Swap any model tag for another Ollama model; run `python run.py setup` to pull.
+
+[ollama]
+host = "http://localhost:11434"
+keep_alive = "30m"      # keep models warm between calls
+num_ctx = 8192          # context window per call
+embed_model = "nomic-embed-text"   # long-term memory embeddings (274 MB)
+
+[orchestrator]
+model = "qwen2.5:1.5b"
+temperature = 0.2
+
+[[coder]]
+name = "coder-1"
+model = "qwen2.5-coder:1.5b"
+temperature = 0.2
+
+[[coder]]
+name = "coder-2"
+model = "deepseek-coder:1.3b"
+temperature = 0.3
+
+[[task]]
+name = "task-1"
+model = "llama3.2:1b"
+temperature = 0.3
+
+[[task]]
+name = "task-2"
+model = "gemma3:1b"
+temperature = 0.3
+
+[[research]]
+name = "research-1"
+model = "qwen2.5:1.5b"
+temperature = 0.4
+
+[[research]]
+name = "research-2"
+model = "gemma3:1b"
+temperature = 0.5
+
+[loop]
+max_cycles = 5            # execute -> verify -> improve iterations per goal
+command_timeout = 120     # seconds for each verify command
+allow_shell = true        # run verify commands the planner proposes (in the project folder)
+web_research = false      # research agents may query DuckDuckGo when true
+short_term_window = 30    # messages kept in short-term memory before compaction
+max_lessons = 25          # lessons kept per instruction file
