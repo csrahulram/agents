@@ -1,0 +1,92 @@
+[
+  {
+    "card": "parse_duration",
+    "reference_ok": true,
+    "mutants": 7,
+    "real_bugs": 6,
+    "model_killed": 6,
+    "false_alarm": true,
+    "asserts": 8
+  },
+  {
+    "card": "chunk_list",
+    "reference_ok": true,
+    "mutants": 5,
+    "real_bugs": 5,
+    "model_killed": 4,
+    "false_alarm": false,
+    "asserts": 8
+  },
+  {
+    "card": "normalise_whitespace",
+    "reference_ok": true,
+    "mutants": 0,
+    "real_bugs": 0,
+    "model_killed": 0,
+    "false_alarm": false,
+    "asserts": 46
+  },
+  {
+    "card": "roman_to_int",
+    "reference_ok": true,
+    "mutants": 12,
+    "real_bugs": 12,
+    "model_killed": 12,
+    "false_alarm": true,
+    "asserts": 19
+  },
+  {
+    "card": "merge_intervals",
+    "reference_ok": true,
+    "mutants": 10,
+    "real_bugs": 10,
+    "model_killed": 10,
+    "false_alarm": true,
+    "asserts": 29
+  },
+  {
+    "card": "word_frequencies",
+    "reference_ok": true,
+    "mutants": 3,
+    "real_bugs": 3,
+    "model_killed": 3,
+    "false_alarm": true,
+    "asserts": 7
+  },
+  {
+    "card": "flatten_dict",
+    "reference_ok": true,
+    "mutants": 0,
+    "real_bugs": 0,
+    "model_killed": 0,
+    "false_alarm": true,
+    "asserts": 18
+  },
+  {
+    "card": "is_balanced",
+    "reference_ok": true,
+    "mutants": 1,
+    "real_bugs": 1,
+    "model_killed": 1,
+    "false_alarm": false,
+    "asserts": 27
+  },
+  {
+    "card": "format_bytes",
+    "reference_ok": true,
+    "mutants": 10,
+    "real_bugs": 10,
+    "model_killed": 9,
+    "false_alarm": true,
+    "asserts": 6
+  },
+  {
+    "card": "diff_lines",
+    "reference_ok": true,
+    "mutants": 9,
+    "real_bugs": 9,
+    "model_killed": 6,
+    "false_alarm": false,
+    "asserts": 20
+  }
+]
