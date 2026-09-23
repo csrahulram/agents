@@ -28,6 +28,10 @@ Every external reference behind the notes, grouped by note. PDFs of the key pape
 - https://prefactor.tech/blog/step-level-accuracy-compounding-failure-production-agents
 - https://zylos.ai/research/2026-06-22-long-horizon-agent-reliability-science/
 
+## [[evoagentx]]
+- https://arxiv.org/abs/2507.03616
+- https://github.com/ANative-Lab/EvoAgentX
+
 ## [[hermes-agent]]
 - https://github.com/nousresearch/hermes-agent
 - https://hermes-agent.nousresearch.com/
