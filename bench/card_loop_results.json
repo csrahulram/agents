@@ -1,0 +1,110 @@
+[
+  {
+    "card": "parse_duration",
+    "pass@1": true,
+    "pass@4": true,
+    "gen_s": 2.5,
+    "tokens": 604,
+    "repair_fresh": true,
+    "repair_carry": true,
+    "repairs_needed": 0,
+    "wall_s": 3.9
+  },
+  {
+    "card": "chunk_list",
+    "pass@1": true,
+    "pass@4": true,
+    "gen_s": 0.6,
+    "tokens": 237,
+    "repair_fresh": true,
+    "repair_carry": true,
+    "repairs_needed": 0,
+    "wall_s": 2.0
+  },
+  {
+    "card": "normalise_whitespace",
+    "pass@1": true,
+    "pass@4": true,
+    "gen_s": 1.0,
+    "tokens": 184,
+    "repair_fresh": true,
+    "repair_carry": true,
+    "repairs_needed": 0,
+    "wall_s": 2.4
+  },
+  {
+    "card": "roman_to_int",
+    "pass@1": true,
+    "pass@4": true,
+    "gen_s": 1.7,
+    "tokens": 687,
+    "repair_fresh": true,
+    "repair_carry": true,
+    "repairs_needed": 0,
+    "wall_s": 3.1
+  },
+  {
+    "card": "merge_intervals",
+    "pass@1": false,
+    "pass@4": false,
+    "gen_s": 1.1,
+    "tokens": 1505,
+    "repair_fresh": false,
+    "repair_carry": false,
+    "wall_s": 10.1
+  },
+  {
+    "card": "word_frequencies",
+    "pass@1": true,
+    "pass@4": true,
+    "gen_s": 1.1,
+    "tokens": 427,
+    "repair_fresh": true,
+    "repair_carry": true,
+    "repairs_needed": 0,
+    "wall_s": 2.4
+  },
+  {
+    "card": "flatten_dict",
+    "pass@1": false,
+    "pass@4": true,
+    "gen_s": 1.1,
+    "tokens": 662,
+    "repair_fresh": false,
+    "repair_carry": false,
+    "wall_s": 5.5
+  },
+  {
+    "card": "is_balanced",
+    "pass@1": true,
+    "pass@4": true,
+    "gen_s": 0.8,
+    "tokens": 344,
+    "repair_fresh": true,
+    "repair_carry": true,
+    "repairs_needed": 0,
+    "wall_s": 2.2
+  },
+  {
+    "card": "format_bytes",
+    "pass@1": true,
+    "pass@4": true,
+    "gen_s": 1.0,
+    "tokens": 399,
+    "repair_fresh": true,
+    "repair_carry": true,
+    "repairs_needed": 0,
+    "wall_s": 2.3
+  },
+  {
+    "card": "diff_lines",
+    "pass@1": false,
+    "pass@4": true,
+    "gen_s": 3.6,
+    "tokens": 941,
+    "repairs_fresh": 1,
+    "repair_fresh": true,
+    "repair_carry": false,
+    "wall_s": 7.6
+  }
+]

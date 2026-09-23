@@ -1,0 +1,154 @@
+[
+  {
+    "id": "parse_duration",
+    "signature": "parse_duration(text: str) -> int",
+    "description": "Convert a duration string like '2h30m', '45s', '1h', '90m' into a total number of seconds. Units are h (hours), m (minutes), s (seconds) and may appear in any combination, in that order. Raise ValueError for an empty string, unknown units, or text that does not match the pattern.",
+    "examples": ["parse_duration('2h30m') == 9000", "parse_duration('45s') == 45", "parse_duration('1h') == 3600"],
+    "hidden_tests": [
+      "assert parse_duration('2h30m') == 9000",
+      "assert parse_duration('45s') == 45",
+      "assert parse_duration('1h') == 3600",
+      "assert parse_duration('90m') == 5400",
+      "assert parse_duration('1h2m3s') == 3723",
+      "assert parse_duration('10m30s') == 630",
+      "raises(ValueError, '')",
+      "raises(ValueError, 'abc')",
+      "raises(ValueError, '5x')",
+      "raises(ValueError, '1h2x')"
+    ]
+  },
+  {
+    "id": "chunk_list",
+    "signature": "chunk_list(items: list, size: int) -> list",
+    "description": "Split a list into consecutive chunks of at most `size` items, preserving order. The final chunk may be shorter. An empty list yields an empty list. Raise ValueError if size is less than 1.",
+    "examples": ["chunk_list([1,2,3,4,5], 2) == [[1,2],[3,4],[5]]", "chunk_list([], 3) == []"],
+    "hidden_tests": [
+      "assert chunk_list([1,2,3,4,5], 2) == [[1,2],[3,4],[5]]",
+      "assert chunk_list([], 3) == []",
+      "assert chunk_list([1,2,3], 5) == [[1,2,3]]",
+      "assert chunk_list([1,2,3,4], 4) == [[1,2,3,4]]",
+      "assert chunk_list(['a','b','c'], 1) == [['a'],['b'],['c']]",
+      "raises(ValueError, [1,2], 0)",
+      "raises(ValueError, [1,2], -1)"
+    ]
+  },
+  {
+    "id": "normalise_whitespace",
+    "signature": "normalise_whitespace(text: str) -> str",
+    "description": "Collapse every run of whitespace (spaces, tabs, newlines) into a single space and strip leading and trailing whitespace. An empty or all-whitespace string returns an empty string.",
+    "examples": ["normalise_whitespace('  a\\t\\tb \\n c ') == 'a b c'"],
+    "hidden_tests": [
+      "assert normalise_whitespace('  a\\t\\tb \\n c ') == 'a b c'",
+      "assert normalise_whitespace('') == ''",
+      "assert normalise_whitespace('   ') == ''",
+      "assert normalise_whitespace('single') == 'single'",
+      "assert normalise_whitespace('a\\n\\nb') == 'a b'",
+      "assert normalise_whitespace('\\ttab\\t') == 'tab'"
+    ]
+  },
+  {
+    "id": "roman_to_int",
+    "signature": "roman_to_int(s: str) -> int",
+    "description": "Convert an uppercase Roman numeral string (I, V, X, L, C, D, M) to an integer, handling subtractive pairs such as IV, IX, XL, XC, CD, CM. Raise ValueError on an empty string or any character that is not a Roman digit.",
+    "examples": ["roman_to_int('XIV') == 14", "roman_to_int('MCMXCIV') == 1994"],
+    "hidden_tests": [
+      "assert roman_to_int('I') == 1",
+      "assert roman_to_int('XIV') == 14",
+      "assert roman_to_int('MCMXCIV') == 1994",
+      "assert roman_to_int('XL') == 40",
+      "assert roman_to_int('CDXLIV') == 444",
+      "assert roman_to_int('MMXXVI') == 2026",
+      "raises(ValueError, '')",
+      "raises(ValueError, 'ABC')"
+    ]
+  },
+  {
+    "id": "merge_intervals",
+    "signature": "merge_intervals(intervals: list) -> list",
+    "description": "Merge overlapping or touching closed intervals given as a list of (start, end) tuples, returning a sorted list of merged (start, end) tuples. Intervals that merely touch, such as (1,2) and (2,3), merge into (1,3). An empty input returns an empty list. Raise ValueError if any interval has start greater than end.",
+    "examples": ["merge_intervals([(1,3),(2,6),(8,10)]) == [(1,6),(8,10)]"],
+    "hidden_tests": [
+      "assert merge_intervals([(1,3),(2,6),(8,10)]) == [(1,6),(8,10)]",
+      "assert merge_intervals([]) == []",
+      "assert merge_intervals([(5,6),(1,2)]) == [(1,2),(5,6)]",
+      "assert merge_intervals([(1,2),(2,3)]) == [(1,3)]",
+      "assert merge_intervals([(1,10),(2,3)]) == [(1,10)]",
+      "assert merge_intervals([(1,1)]) == [(1,1)]",
+      "raises(ValueError, [(5,1)])"
+    ]
+  },
+  {
+    "id": "word_frequencies",
+    "signature": "word_frequencies(text: str) -> dict",
+    "description": "Count words in a string case-insensitively, ignoring punctuation, returning a dict mapping lowercase word to count. Words are maximal runs of letters, digits and apostrophes. An empty string returns an empty dict.",
+    "examples": ["word_frequencies('The cat, the CAT!') == {'the': 2, 'cat': 2}"],
+    "hidden_tests": [
+      "assert word_frequencies('The cat, the CAT!') == {'the': 2, 'cat': 2}",
+      "assert word_frequencies('') == {}",
+      "assert word_frequencies('one') == {'one': 1}",
+      "assert word_frequencies(\"don't don't\") == {\"don't\": 2}",
+      "assert word_frequencies('a1 a1 b') == {'a1': 2, 'b': 1}",
+      "assert word_frequencies('... !!!') == {}"
+    ]
+  },
+  {
+    "id": "flatten_dict",
+    "signature": "flatten_dict(d: dict, sep: str = '.') -> dict",
+    "description": "Flatten a nested dictionary into a single level, joining keys with `sep`. Nested empty dicts disappear. Non-dict values are kept as they are. An empty dict returns an empty dict.",
+    "examples": ["flatten_dict({'a': {'b': 1}, 'c': 2}) == {'a.b': 1, 'c': 2}"],
+    "hidden_tests": [
+      "assert flatten_dict({'a': {'b': 1}, 'c': 2}) == {'a.b': 1, 'c': 2}",
+      "assert flatten_dict({}) == {}",
+      "assert flatten_dict({'a': 1}) == {'a': 1}",
+      "assert flatten_dict({'a': {'b': {'c': 3}}}) == {'a.b.c': 3}",
+      "assert flatten_dict({'a': {'b': 1}}, sep='/') == {'a/b': 1}",
+      "assert flatten_dict({'a': {}}) == {}",
+      "assert flatten_dict({'a': [1, 2]}) == {'a': [1, 2]}"
+    ]
+  },
+  {
+    "id": "is_balanced",
+    "signature": "is_balanced(s: str) -> bool",
+    "description": "Return True if every bracket in the string is correctly matched and nested. Brackets are (), [] and {}. Any other character is ignored. An empty string is balanced.",
+    "examples": ["is_balanced('a(b[c]{d})') is True", "is_balanced('(]') is False"],
+    "hidden_tests": [
+      "assert is_balanced('a(b[c]{d})') is True",
+      "assert is_balanced('') is True",
+      "assert is_balanced('(]') is False",
+      "assert is_balanced('([)]') is False",
+      "assert is_balanced('(((') is False",
+      "assert is_balanced(')))') is False",
+      "assert is_balanced('{[()]}') is True",
+      "assert is_balanced('no brackets here') is True"
+    ]
+  },
+  {
+    "id": "format_bytes",
+    "signature": "format_bytes(n: int) -> str",
+    "description": "Format a byte count using binary units: B, KB, MB, GB, TB, where 1 KB is 1024 B. Use one decimal place for units above bytes, and no decimals for bytes. Pick the largest unit for which the value is at least 1. Raise ValueError for a negative number.",
+    "examples": ["format_bytes(0) == '0 B'", "format_bytes(1536) == '1.5 KB'", "format_bytes(1048576) == '1.0 MB'"],
+    "hidden_tests": [
+      "assert format_bytes(0) == '0 B'",
+      "assert format_bytes(512) == '512 B'",
+      "assert format_bytes(1024) == '1.0 KB'",
+      "assert format_bytes(1536) == '1.5 KB'",
+      "assert format_bytes(1048576) == '1.0 MB'",
+      "assert format_bytes(1073741824) == '1.0 GB'",
+      "raises(ValueError, -1)"
+    ]
+  },
+  {
+    "id": "diff_lines",
+    "signature": "diff_lines(a: str, b: str) -> list",
+    "description": "Compare two texts line by line and return a list of (line_number, kind, text) tuples for lines that differ, where line_number is 1-based and kind is 'added', 'removed' or 'changed'. Compare positionally: for each index, a line present only in b is 'added', present only in a is 'removed', and different in both is 'changed'. Identical lines produce nothing.",
+    "examples": ["diff_lines('a\\nb', 'a\\nc') == [(2, 'changed', 'c')]"],
+    "hidden_tests": [
+      "assert diff_lines('a\\nb', 'a\\nc') == [(2, 'changed', 'c')]",
+      "assert diff_lines('a', 'a') == []",
+      "assert diff_lines('', '') == []",
+      "assert diff_lines('a', 'a\\nb') == [(2, 'added', 'b')]",
+      "assert diff_lines('a\\nb', 'a') == [(2, 'removed', 'b')]",
+      "assert diff_lines('x\\ny', 'p\\nq') == [(1, 'changed', 'p'), (2, 'changed', 'q')]"
+    ]
+  }
+]
