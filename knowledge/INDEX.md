@@ -28,6 +28,7 @@ than nested, so the folder opens as a graph in Obsidian.
 - [[self-evolving-agents-survey]] — the field's reference map: Three Laws, the MASE framework, every optimiser family
 - [[evoagentx]] — the reference implementation: optimisers, MAP-Elites, and a first-class human-in-the-loop module
 - [[agentevolver]] — RL training framework: self-generated tasks, experience reuse, per-step credit assignment
+- [[awesome-self-evolving-agents]] — the curated corpus (367 entries, May 2026): what appeared after the survey
 - [[mase-mapping]] — where our design sits in that framework, and the six things it says we are missing
 - [[hermes-agent]] — memory hygiene done well, loop safety done poorly
 - [[wiki-memory]] — Karpathy's LLM Wiki, A-MEM, and Obsidian-style memory

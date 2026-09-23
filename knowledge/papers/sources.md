@@ -19,6 +19,10 @@ Every external reference behind the notes, grouped by note. PDFs of the key pape
 - https://arxiv.org/abs/2511.10395
 - https://github.com/modelscope/AgentEvolver
 
+## [[awesome-self-evolving-agents]]
+- https://github.com/ANative-Lab/Awesome-Self-Evolving-Agents
+- https://github.com/jennyzzt/dgm
+
 ## [[blackboard-and-tape]]
 - https://anthropic.com/engineering/effective-harnesses-for-long-running-agents
 - https://arxiv.org/abs/2301.04589
