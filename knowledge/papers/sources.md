@@ -15,6 +15,10 @@ Every external reference behind the notes, grouped by note. PDFs of the key pape
 - https://arxiv.org/pdf/2603.24631
 - https://futureagi.com/glossary/infinite-loop-agent/
 
+## [[agentevolver]]
+- https://arxiv.org/abs/2511.10395
+- https://github.com/modelscope/AgentEvolver
+
 ## [[blackboard-and-tape]]
 - https://anthropic.com/engineering/effective-harnesses-for-long-running-agents
 - https://arxiv.org/abs/2301.04589
