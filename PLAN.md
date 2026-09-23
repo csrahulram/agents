@@ -17,9 +17,24 @@ a dumb runner applies the rules in `RULES.md`; small models do one step per card
 | Escalation (on demand) | `llama-server`, started only when needed | Qwen2.5-Coder-3B-Instruct Q4_K_M | ~2.5 GB |
 | Speech to text | `faster-whisper` (Python) | whisper small | ~1 GB |
 | GUI actions (later, optional) | Python + Transformers | GUI-Actor-2B | ~5 GB |
+| Training (model station) | WSL2 + CUDA, LoRA | trains the coder/general models on our own runs | the full 12 GB, servers stopped |
 
 The always-on models total about 5.5 GB, and about 8 GB with escalation, which leaves room within 12 GB.
 The GUI actions model would only run when those others aren't running.
+
+## Three layers (Karpathy's LLM Wiki pattern, with a human-owned ground truth)
+| Layer | Contents | Who writes | Properties |
+|---|---|---|---|
+| **RAW** | goal/spec, acceptance tests, `RULES.md`, instruction files, approved lessons, setup facts, **the benchmark, the chaos suite, `promotion.toml`** | **Human only.** The permissions gate rejects every agent write. | Versioned `raw/v1, v2…` with git tags. Frozen during a run. |
+| **Proposals** | `proposals/raw-v{N+1}/`: suggested RAW changes, each with evidence (failed cards, metrics, log lines) and an automatic before/after test | Agents suggest; the human approves or rejects | Rejections are recorded so the same idea can't return |
+| **WIKI** | tape cards, memory notes, summaries, the search index, generated code, `models.toml` | Agents, through the gates and the ratchet | **Disposable:** can always be rebuilt from RAW + logs |
+
+Everything is Obsidian-compatible markdown: metadata headers and `[[links]]`, so the whole project can be browsed
+as a graph. Files are the source of truth; the SQLite index (text search + embeddings) is rebuilt from them.
+Maintenance — link checks, contradictions, stale notes, size limits — is done by code, never by a model.
+
+**Why this stops the long-term bad loop:** the agents' ground truth cannot drift on its own, and there is always a
+clean baseline. Delete the WIKI, rebuild from RAW vN, and any corrupted memory or confused tape is gone.
 
 ## Layout
 ```
@@ -36,7 +51,12 @@ core/
   feedback.py      turns test failures into precise error feedback
   context.py       builds each card's context: contract signatures + retrieved code + memory
   memory.py        short-term / long-term / project state (kept from the current code)
-bench/             model benchmark tasks
+raw/               human-owned ground truth: RULES.md, instructions, benchmark, chaos suite, promotion.toml
+proposals/         agent-suggested RAW changes, awaiting human review
+bench/             model benchmark tasks (frozen: the same tasks score every model version)
+station/           model station: dataset.py, train.py, eval.py, registry.py, configs/
+data/trajectories/ every model call with its gate result — the training data
+adapters/          trained LoRA adapters, one folder per role and version (git-ignored)
 tests/chaos/       worst-case fake-model tests (the stability proof)
 models/            downloaded GGUF files (git-ignored)
 workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
@@ -48,6 +68,7 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 
 ### Phase 0: Runtime setup
 - Download the llama.cpp Windows CUDA build into `tools/llama.cpp/`.
+- Install Playwright for Python and its Chromium browser, used to check web projects.
 - `scripts/fetch_models.py`: download the GGUF files from Hugging Face into `models/` and check their checksums.
 - **Checkpoint:** each model answers a request on its port, and `nvidia-smi` shows total use under 9 GB.
 
@@ -57,7 +78,7 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 - **Checkpoint:** the grammar-forced output always parses (100 calls), and 4 parallel requests to the coder work.
 
 ### Phase 2: Model benchmark (decides the models)
-- `bench/`: 20 function-sized coding cards with tests, 10 structured-output/planning tasks, 5 screenshot questions.
+- `bench/`: 20 function-sized coding cards with tests (12 Python, 8 JavaScript), 5 small HTML page cards with Playwright tests, 10 structured-output/planning tasks, 5 screenshot questions.
 - Run every candidate model and measure: pass rate on the first try, pass rate with 4 candidates, speed, and how often the format breaks.
 - **Checkpoint:** a table of results, and the final models are recorded in `agents.toml`.
 
@@ -69,12 +90,22 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 
 ### Phase 4: Gates
 - Format → permissions (only the card's own files, only allowed state changes) → sanity (compiles, imports resolve, no placeholders) → the card's test → no previously passing test now fails.
-- **Checkpoint:** unit tests cover each gate with bad input.
+- Checks for each language:
+  | Language | Sanity check | Card test | Whole-project check |
+  |---|---|---|---|
+  | Python | `py_compile`, imports resolve | `unittest` | all tests + an end-to-end test |
+  | JavaScript | `node --check` | `node --test` (built into Node 24, no packages) | all tests |
+  | HTML/CSS | the HTML parses, linked files exist | Playwright loads the page: no console errors, the required elements are present, and clicks/inputs behave as specified | a screenshot checked by the vision model with specific yes/no questions |
+- The vision model is only a final check on how the page looks. A page passes on the Playwright tests, never on the vision model alone.
+- **Checkpoint:** unit tests cover each gate with bad input, for all three languages.
 
 ### Phase 5: Runner + RULES.md
 - The state machine: `goal → todo → spec → coding → testing → done`, plus `split`, `waiting`, `integrate`, `research` and `blocked`.
 - The ratchet (the progress score never goes down), the no-progress watchdog, and overall limits on steps and time.
-- **Checkpoint:** a scripted fake model builds a 5-card project and halts in `done`.
+- **Trajectory logging starts here** (the training data for the model station): every model call is written to
+  `data/trajectories/*.jsonl` as {rule, model, prompt, output, gate results, tests passed, time, card id, project,
+  raw version}. Every call, accepted or rejected, because the rejected ones are the negative examples.
+- **Checkpoint:** a scripted fake model builds a 5-card project and halts in `done`, and its trajectories are logged.
 
 ### Phase 6: Candidates, feedback, escalation
 - 4 parallel candidates per card, and the first to pass all gates wins.
@@ -98,12 +129,80 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 - Measure: percentage of cards done, steps per card, how often escalation is needed, and total time.
 - **Checkpoint:** at least 2 of the 3 projects finish with no manual help.
 
-### Phase 10: Lessons with probation (off by default)
-- Lessons attach to specific rules, go on probation, are compared over several runs, and are removed automatically if they don't help. Instruction size is capped.
-- **Checkpoint:** switching lessons on does not lower the Phase 9 results over 3 runs.
+### Phase 10: Proposals and review (replaces free self-editing of instructions)
+- Agents never edit RAW. They write a proposal: a small diff plus evidence, tested automatically against the
+  benchmark and chaos suite before you ever see it. Proposals without evidence, or that don't improve results, are
+  rejected by code.
+- Proposals are batched into one review per run, with a cap on how many, so reviewing stays meaningful.
+  Rejections are recorded in RAW with the reason, so the same suggestion can't come back.
+- Runs continue on RAW vN while proposals wait; nothing stalls on a review.
+- **Checkpoint:** an approved proposal becomes `raw/v2`, and rebuilding the WIKI from RAW reproduces the same result.
 
 ### Phase 11: Extras
 - Audio through faster-whisper, video through sampled frames sent to the vision model, and GUI-Actor-2B as an optional Python service.
+
+### Phase 12: Model station — data and evaluation
+The station turns the loop's own runs into training data, trains adapters for our exact tasks, and promotes a new
+model only when it beats the current one on a frozen benchmark. Weights are treated like RAW: **a new model is a
+version you approve, never a silent self-update.**
+
+- `station/dataset.py`: build datasets from `data/trajectories/`, one per role:
+  | Dataset | Positive example | Negative example |
+  |---|---|---|
+  | coder | the candidate that passed every gate | candidates that failed, with the error |
+  | test-writer | tests that were kept and caught a real bug | tests that were wrong (every candidate failed them) |
+  | splitter/planner | splits whose children all reached `done` | splits that led to `blocked` |
+  | proposal writer | proposals that were approved and improved the benchmark | rejected ones |
+- Hygiene: remove duplicates, cap how many examples come from one project, split train/test **by project** so nothing
+  leaks, drop anything from a `blocked` card, and record which RAW version produced each example.
+- `station/eval.py`: the frozen benchmark from Phase 2 plus the chaos suite, scoring pass rate on the first try,
+  pass rate with 4 candidates, format errors, tokens, and speed. Every model version is scored the same way.
+- **Checkpoint:** a dataset built from 3 real projects, with a leak check and a scored baseline for each current model.
+
+### Phase 13: Model station — training
+- Environment: **WSL2 (Ubuntu) with CUDA**, because the training libraries are unreliable on native Windows.
+  Training runs while the servers are stopped, so it has the full 12 GB, typically overnight.
+- Methods, cheapest first:
+  1. **LoRA fine-tuning** on the winning outputs. Biggest gains on format, structure and house style.
+     A 1.5B model with LoRA fits comfortably in 12 GB.
+  2. **Preference training (DPO/ORPO)** on passed-vs-failed candidate pairs for the same card. The loop produces these
+     pairs for free, and it teaches the model which of its own plausible outputs actually passes.
+  3. **Reinforcement learning from the tests (GRPO)** where the reward is the gate result. It's the most powerful
+     and the most expensive, and is only worth trying at 0.5–1.5B once the first two are exhausted.
+  4. **Learning from a stronger model** (optional): a larger local model solves the cards the small one failed, and its
+     solutions, after passing the gates, become training data. Check the licence of the teacher model first.
+- Serving: llama.cpp can load a LoRA adapter next to the base model (`--lora`), so adapters can be swapped and
+  reverted without re-downloading anything. Merging and re-quantising to GGUF is the alternative when speed matters.
+- **Checkpoint:** one trained adapter beats the base model on the frozen benchmark, and the loop runs end to end with it.
+
+### Phase 14: Model station — automatic promotion, manual RAW
+**Weights promote themselves; the yardstick never does.** A new adapter can take over automatically once it proves
+itself, because everything it is measured against — the benchmark tasks, the chaos suite, the thresholds below,
+`RULES.md` and the instruction files — lives in RAW and only a human changes it. The system can change how well it
+plays, never what counts as winning.
+
+- `station/registry.py`: `wiki/models.toml` records, per role, the active adapter, its scores, the date and the
+  promotion decision. It is working state, not RAW, because promotion is automatic. RAW holds only
+  `raw/promotion.toml`: the thresholds, the benchmark hash and the chaos suite.
+- **Automatic promotion requires all of:**
+  1. **Effectiveness:** beats the active model on the frozen benchmark over 3 seeds, by more than 2× the measured
+     run-to-run variation — not a single lucky run.
+  2. **Robustness:** the entire chaos suite passes, the format-error rate is no worse, and latency is within 20%.
+  3. **Generalisation:** no worse (within noise) on held-out projects it never trained on.
+  4. **Real use:** one full real project completes end to end with it.
+  5. **Integrity:** the benchmark hash matches RAW, and the leak check shows no benchmark task in the training data.
+  Fail any one and the adapter is archived with the reason. No partial credit, no manual override to promote.
+- **Canary and automatic rollback:** after promotion the new adapter runs the next 50 cards while the metrics are
+  watched. If the first-try pass rate drops below the previous baseline beyond the noise band, or the chaos suite
+  starts failing, the system **rolls back on its own**, quarantines the adapter and writes the evidence to the log.
+  Two failed canaries for one role pause training for that role until a human looks.
+- **Always reversible:** the base model is never deleted, the last 5 adapters are kept, and rollback is one line.
+- **You are told, not asked:** every promotion and rollback is logged and summarised in the run report.
+- **Known risks and their handling:** training on its own output can narrow the model (guard: the held-out set and
+  the "learning from a stronger model" data); a model can forget general ability (guard: the benchmark includes
+  general tasks); and the benchmark can become the target (guard: refresh it with new cards each quarter, keeping
+  the old one for comparison).
+- **Checkpoint:** a promotion and a rollback both work, with the loop stable before and after.
 
 ---
 
@@ -112,7 +211,17 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 |---|---|---|
 | `memory.py`, `tools.py` (file safety, running commands) | `llm.py` (OpenAI-compatible, grammars), `agents.py` becomes rule-driven | `orchestrator.py` (the central orchestrator is replaced by `runner.py` and `RULES.md`) |
 
+## Decisions
+1. **Target languages: Python plus HTML/JS** (plain HTML, CSS and JavaScript, no build tools or frameworks at first). Decided.
+
 ## Open decisions
-1. Initial target language: Python only, or Python plus HTML/JS?
 2. Is git fine for checkpoints? It's needed for the ratchet.
-3. Should the escalation 3B model be allowed? It's about 2.5 GB, started on demand.
+3. Escalation model: Qwen2.5-Coder-3B is under a **research-only licence**. Keep it (fine for personal/research use),
+   or swap to the 7B (Apache 2.0, ~4.7 GB, loaded on demand) if the work may ever be commercial.
+4. Model station: is WSL2 available/acceptable for training? Native Windows training is possible but less reliable.
+
+## Measured on this machine (2026-09-23)
+llama.cpp build 11105, CUDA 12.4, RTX 3060 12 GB. Warm load / GPU memory / first request:
+coder-1.5B 1.4 s / 1,347 MB / 0.05 s · general-1B 2.8 s / 905 MB / 0.07 s · vision 2.6 s / 1,892 MB / 0.09 s ·
+embeddings 0.5 s / 255 MB / 0.01 s · coder-3B 1.9 s / 2,335 MB / 0.06 s.
+Four core models: **4.4 GB**, or 6.7 GB with the 3B. Models live in `E:\models\gguf`.
