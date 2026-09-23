@@ -17,10 +17,46 @@ a dumb runner applies the rules in `RULES.md`; small models do one step per card
 | Escalation (on demand) | `llama-server`, started only when needed | Qwen2.5-Coder-3B-Instruct Q4_K_M | ~2.5 GB |
 | Speech to text | `faster-whisper` (Python) | whisper small | ~1 GB |
 | GUI actions (later, optional) | Python + Transformers | GUI-Actor-2B | ~5 GB |
-| Training (model station) | WSL2 + CUDA, LoRA | trains the coder/general models on our own runs | the full 12 GB, servers stopped |
+| Training (model station) | `trainer` container (CUDA, GPU passthrough verified) | trains adapters on our own runs | the full 12 GB, model services stopped |
 
 The always-on models total about 5.5 GB, and about 8 GB with escalation, which leaves room within 12 GB.
 The GUI actions model would only run when those others aren't running.
+
+## The seed, and what may never be self-built
+**The seed is the hand-written kernel.** It is small, boring, and off-limits to agents — it is the thing that decides
+what is true, so nothing that a model writes may ever change it:
+
+| Seed component | Why it must be hand-written |
+|---|---|
+| `core/llm.py` | speaks to the models; if it is wrong, every measurement is wrong |
+| `core/tape.py` | atomic writes, locks, git checkpoints — the ratchet lives here |
+| `core/gates.py` | the five gates; a model editing its own judge is the bad loop |
+| `core/runner.py` + `RULES.md` | the loop and its limits |
+| `compose.yaml` + `sandbox/` | isolation and resource limits |
+| `web/seed/` | a read-only view: cards, logs, proposals, approve/reject |
+
+Everything **above** the kernel is fair game for the system to build: the full web interface, project templates,
+Dockerfiles for generated projects, extra gates as plugins behind a fixed API, and its own benchmark cards.
+Recursion means *the system extends its periphery*, never *the system rewrites its own judge*.
+
+## Docker Compose runtime (verified on this machine: Docker 29.7.2, Compose v5.5.0, GPU passthrough works)
+| Service | Image | Role |
+|---|---|---|
+| `llm-coder`, `llm-general`, `llm-vision`, `llm-embed` | llama.cpp CUDA | one model each, `--parallel 4` on the coder; `llm-escalate` is a profile started on demand |
+| `runner` | python:3.12-slim | the loop; mounts `raw/` read-only, `wiki/`, `workspace/`; spawns sandboxes via the Docker socket |
+| `web` | python:3.12-slim | dashboard and API; the seed version is read-only, the full one is built by the system |
+| `sandbox` (ephemeral, one per test run) | our image: python + node + Playwright | **`network_mode: none`**, read-only except `/work`, CPU/memory caps, hard timeout, killed after each run |
+| `proxy` | caddy | serves deployed projects on local ports/hostnames |
+| `trainer` (profile) | CUDA + PyTorch | the model station; no separate WSL install needed |
+
+The sandbox closes the hole where model-written commands ran directly on the host. Nothing generated ever executes
+outside it, and with no network it cannot download anything or reach your machine.
+
+## Local deploy loop
+A project reaching `done` gets: a generated `Dockerfile` and `compose.yaml` (written as ordinary cards, gated like
+any code), a build, a start behind `proxy` on an assigned port, and a **health check plus the acceptance tests run
+against the live service**. Only then is it marked `deployed`. Failure rolls back to the previous image tag, and the
+previous version keeps serving. Everything stays local; nothing is published.
 
 ## Three layers (Karpathy's LLM Wiki pattern, with a human-owned ground truth)
 | Layer | Contents | Who writes | Properties |
@@ -67,8 +103,9 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 ## Phases (each ends with a checkpoint that must pass before moving on)
 
 ### Phase 0: Runtime setup
-- Download the llama.cpp Windows CUDA build into `tools/llama.cpp/`.
-- Install Playwright for Python and its Chromium browser, used to check web projects.
+- ✅ llama.cpp Windows CUDA build in `tools/llama.cpp/` (b11105), models in `E:\models\gguf`, load times measured.
+- `compose.yaml` with the model services, and the sandbox image (python + node + Playwright).
+- Playwright inside the sandbox image, not on the host.
 - `scripts/fetch_models.py`: download the GGUF files from Hugging Face into `models/` and check their checksums.
 - **Checkpoint:** each model answers a request on its port, and `nvidia-smi` shows total use under 9 GB.
 
@@ -125,9 +162,26 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 - **Checkpoint:** every model call stays under 3K tokens on a 30-card project.
 
 ### Phase 9: Real models, end to end
-- 3 sample projects: a CLI tool, a small library, and a static web page (checked with a Playwright screenshot plus the vision model).
-- Measure: percentage of cards done, steps per card, how often escalation is needed, and total time.
-- **Checkpoint:** at least 2 of the 3 projects finish with no manual help.
+- Before anything else, the four **falsification tests** from `raw/research/open-objections.md`:
+  decomposition pilot, mutation test (catch 8 of 10 injected bugs), gaming probe, blocked-card rate.
+  If these fail, the design changes here — not after months of building.
+- 3 sample projects: a CLI tool, a small library, and a static web page (Playwright plus a vision check).
+- Measure: cards done, steps per card, escalation rate, blocked cards, tokens and wall-clock time per project.
+- **Checkpoint:** at least 2 of the 3 finish with no manual help, and the four probes have numbers.
+
+### Phase 9.5: Deploy pipeline
+- Card types for `Dockerfile` and `compose.yaml`, gated like any other code.
+- `deploy`: build → start behind `proxy` on an assigned port → health check → acceptance tests against the live
+  service → mark `deployed`. Any failure rolls back to the previous image tag; the old version keeps serving.
+- **Checkpoint:** the static web page project deploys, serves locally, and rolls back cleanly when a bad build is forced.
+
+### Phase 9.6: The system builds its own web interface (first dogfood project)
+The seed UI is read-only. The full interface is the system's **first real project**, chosen because it is HTML/JS,
+fully testable with Playwright, and its failures are visible rather than silent.
+- Goal handed to the loop: live card board, logs, progress score, start/pause, proposal review, blocked-card triage.
+- It talks to the runner through a **fixed, hand-written API** in the seed. The UI may not reach the tape directly.
+- **Checkpoint:** the interface is built by the loop, passes its Playwright tests, deploys locally, and is good enough
+  to run the next project from. If the loop cannot build it, that is a real result about the design, not a detour.
 
 ### Phase 10: Proposals and review (replaces free self-editing of instructions)
 - Agents never edit RAW. They write a proposal: a small diff plus evidence, tested automatically against the
@@ -160,8 +214,8 @@ version you approve, never a silent self-update.**
 - **Checkpoint:** a dataset built from 3 real projects, with a leak check and a scored baseline for each current model.
 
 ### Phase 13: Model station — training
-- Environment: **WSL2 (Ubuntu) with CUDA**, because the training libraries are unreliable on native Windows.
-  Training runs while the servers are stopped, so it has the full 12 GB, typically overnight.
+- Environment: the **`trainer` container** (CUDA + PyTorch). GPU passthrough is verified on this machine, so no
+  separate WSL distro is needed. Training runs while the model services are stopped, so it has the full 12 GB.
 - Methods, cheapest first:
   1. **LoRA fine-tuning** on the winning outputs. Biggest gains on format, structure and house style.
      A 1.5B model with LoRA fits comfortably in 12 GB.
@@ -218,7 +272,7 @@ plays, never what counts as winning.
 2. Is git fine for checkpoints? It's needed for the ratchet.
 3. Escalation model: Qwen2.5-Coder-3B is under a **research-only licence**. Keep it (fine for personal/research use),
    or swap to the 7B (Apache 2.0, ~4.7 GB, loaded on demand) if the work may ever be commercial.
-4. Model station: is WSL2 available/acceptable for training? Native Windows training is possible but less reliable.
+4. ~~WSL2 for training~~ — resolved: the `trainer` container works, GPU passthrough verified 2026-09-23.
 
 ## Measured on this machine (2026-09-23)
 llama.cpp build 11105, CUDA 12.4, RTX 3060 12 GB. Warm load / GPU memory / first request:
