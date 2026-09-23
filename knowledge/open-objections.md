@@ -27,4 +27,4 @@ settle it. **An objection is only closed by a measurement, never by an argument.
 3. **Gaming probe:** run cards where hardcoding passes the visible tests. How often does it happen?
 4. **Blocked-card rate:** one real 30-card project. How many cards end blocked?
 
-Related: [[../../PLAN|PLAN]]
+Related: [[../PLAN|PLAN]]

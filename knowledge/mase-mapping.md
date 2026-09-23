@@ -59,4 +59,4 @@ and where we deliberately differ.
    Our justification is not capability but privacy, cost, offline operation and stability, per
    [[open-objections]] #6. Keep that honest.
 
-Related: [[self-evolving-agents-survey]], [[open-objections]], [[../../PLAN|PLAN]]
+Related: [[self-evolving-agents-survey]], [[open-objections]], [[../PLAN|PLAN]]

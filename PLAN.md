@@ -107,6 +107,7 @@ core/
   context.py       builds each card's context: contract signatures + retrieved code + memory
   memory.py        short-term / long-term / project state (kept from the current code)
 raw/               human-owned ground truth: RULES.md, instructions, benchmark, chaos suite, promotion.toml
+knowledge/         the research wiki: linked markdown notes + papers/ (PDFs git-ignored, fetch.py rebuilds them)
 proposals/         agent-suggested RAW changes, awaiting human review
 bench/             model benchmark tasks (frozen: the same tasks score every model version)
 station/           model station: dataset.py, train.py, eval.py, registry.py, configs/
@@ -185,7 +186,7 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 - **Checkpoint:** every model call stays under 3K tokens on a 30-card project.
 
 ### Phase 9: Real models, end to end
-- Before anything else, the four **falsification tests** from `raw/research/open-objections.md`:
+- Before anything else, the four **falsification tests** from `knowledge/open-objections.md`:
   decomposition pilot, mutation test (catch 8 of 10 injected bugs), gaming probe, blocked-card rate.
   If these fail, the design changes here — not after months of building.
 - 3 sample projects: a CLI tool, a small library, and a static web page (Playwright plus a vision check).

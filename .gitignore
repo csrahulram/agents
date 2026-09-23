@@ -8,3 +8,4 @@ tools/
 *.gguf
 
 .env
+knowledge/papers/*.pdf

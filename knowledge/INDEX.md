@@ -6,8 +6,12 @@ updated: 2026-09-23
 
 # Research Index
 
-Evidence behind the design in [[../../PLAN|PLAN]]. Every claim here carries a source. This folder is RAW:
-agents may read it, never write it. Notes are atomic — one topic each — and linked rather than nested.
+Evidence behind the design in [[../PLAN|PLAN]]. Every claim here carries a source. This folder is human-owned
+reference material: agents may read it, never write it. Notes are atomic — one topic each — and linked rather
+than nested, so the folder opens as a graph in Obsidian.
+
+**Papers:** [[papers/sources|every cited URL]], and 16 PDFs in `papers/` — not committed, rebuilt with
+`python knowledge/papers/fetch.py`.
 
 ## The problem we are betting against
 - [[small-model-capability]] — what 1B–3B models can and cannot do
