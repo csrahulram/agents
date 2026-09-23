@@ -52,6 +52,25 @@ Recursion means *the system extends its periphery*, never *the system rewrites i
 The sandbox closes the hole where model-written commands ran directly on the host. Nothing generated ever executes
 outside it, and with no network it cannot download anything or reach your machine.
 
+## Staging → main promotion (RAW changes and the kernel itself)
+Two identical Compose stacks from the same files, different project names, ports and volumes:
+
+| Stack | Runs on | Purpose |
+|---|---|---|
+| `main` | `raw/` at the approved version | normal work; never runs an unapproved RAW |
+| `staging` | `proposals/raw-v{N+1}/` merged over RAW | proves a change before it is allowed near main |
+
+**Promotion pipeline** — a proposal reaches main only by passing, in order:
+1. The stack starts and every service is healthy.
+2. The **frozen benchmark**, scored against main's numbers.
+3. The **chaos suite**, in full.
+4. One **real project end to end**, deployed and serving.
+5. No regression on held-out projects.
+
+Then `promote` (human command, one word): tag `raw/v{N+1}`, merge to `main` in git, restart the main stack, and
+record the evidence. `rollback` returns to `raw/vN` and the previous images. Staging is disposable — delete and
+rebuild it from files at any time. Kernel changes (which only a human writes) go through the same pipeline.
+
 ## Local deploy loop
 A project reaching `done` gets: a generated `Dockerfile` and `compose.yaml` (written as ordinary cards, gated like
 any code), a build, a start behind `proxy` on an assigned port, and a **health check plus the acceptance tests run
@@ -126,7 +145,11 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 - **Checkpoint:** kill the process at random points 100 times, and the tape is never corrupted.
 
 ### Phase 4: Gates
-- Format → permissions (only the card's own files, only allowed state changes) → sanity (compiles, imports resolve, no placeholders) → the card's test → no previously passing test now fails.
+- Format → permissions (only the card's own files, only allowed state changes) → **structure** (one public function
+  per file, name matches the file, signature matches `CONTRACT.md`) → sanity (compiles, imports resolve, no
+  placeholders) → the card's test → no previously passing test now fails.
+- Every command runs in an **ephemeral sandbox container**: no network, read-only except `/work`, CPU/memory caps,
+  hard timeout, destroyed afterwards.
 - Checks for each language:
   | Language | Sanity check | Card test | Whole-project check |
   |---|---|---|---|
@@ -266,13 +289,27 @@ plays, never what counts as winning.
 | `memory.py`, `tools.py` (file safety, running commands) | `llm.py` (OpenAI-compatible, grammars), `agents.py` becomes rule-driven | `orchestrator.py` (the central orchestrator is replaced by `runner.py` and `RULES.md`) |
 
 ## Decisions
-1. **Target languages: Python plus HTML/JS** (plain HTML, CSS and JavaScript, no build tools or frameworks at first). Decided.
+1. **Target languages: Python plus HTML/JS.** No frameworks and no build tools, ever — plain HTML, CSS and
+   JavaScript, and the Python standard library. Decided.
+2. **One function per file, everywhere in generated code.** No clubbing several functions into one file, so two
+   agents never contend for the same file and a fix touches exactly one file.
+   - `lib/<function_name>.py` exports exactly one public function of the same name; `tests/test_<name>.py` beside it.
+   - Shared data shapes live in one `types.py`; `main.py` is wiring only, with no logic.
+   - Imports follow one fixed pattern: `from lib.<name> import <name>`.
+   - `CONTRACT.md` lists every function's signature, description and dependencies **before any code is written**.
+   - A gate enforces all of this: one public function per file, the name matches the file, the signature matches the
+     contract, and no file outside the card's own.
+   - Build order is by dependency layer: functions with no dependencies first, each layer tested before the next.
+3. **Docker everything.** Models, runner, web, sandboxes, proxy and trainer all run as Compose services. Accepted
+   cost: a little inference overhead versus running llama-server on Windows directly, in exchange for one
+   reproducible environment, clean staging/main separation and real isolation.
+4. **The kernel is human-written and permanently off-limits to agents.** Decided.
 
 ## Open decisions
-2. Is git fine for checkpoints? It's needed for the ratchet.
-3. Escalation model: Qwen2.5-Coder-3B is under a **research-only licence**. Keep it (fine for personal/research use),
+1. Is git fine for checkpoints? It's needed for the ratchet.
+2. Escalation model: Qwen2.5-Coder-3B is under a **research-only licence**. Keep it (fine for personal/research use),
    or swap to the 7B (Apache 2.0, ~4.7 GB, loaded on demand) if the work may ever be commercial.
-4. ~~WSL2 for training~~ — resolved: the `trainer` container works, GPU passthrough verified 2026-09-23.
+3. ~~WSL2 for training~~ — resolved: the `trainer` container works, GPU passthrough verified 2026-09-23.
 
 ## Measured on this machine (2026-09-23)
 llama.cpp build 11105, CUDA 12.4, RTX 3060 12 GB. Warm load / GPU memory / first request:
