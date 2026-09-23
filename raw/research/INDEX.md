@@ -18,6 +18,8 @@ agents may read it, never write it. Notes are atomic — one topic each — and 
 - [[agent-loop-failures]] — how agent loops fail structurally
 
 ## What we borrow from
+- [[self-evolving-agents-survey]] — the field's reference map: Three Laws, the MASE framework, every optimiser family
+- [[mase-mapping]] — where our design sits in that framework, and the six things it says we are missing
 - [[hermes-agent]] — memory hygiene done well, loop safety done poorly
 - [[wiki-memory]] — Karpathy's LLM Wiki, A-MEM, and Obsidian-style memory
 - [[self-improvement-fragility]] — why learned lessons need probation
