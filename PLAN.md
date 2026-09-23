@@ -305,11 +305,14 @@ plays, never what counts as winning.
    reproducible environment, clean staging/main separation and real isolation.
 4. **The kernel is human-written and permanently off-limits to agents.** Decided.
 
+5. **Git is the checkpoint mechanism** inside every generated project: a commit per accepted change, a revert per
+   rejected one. Decided.
+6. **Escalation stays Qwen2.5-Coder-3B** under its research licence — personal/research use only. If anything built
+   here ever becomes commercial, swap to the Apache-2.0 7B and re-run the benchmark. Decided.
+7. ~~WSL2 for training~~ — resolved: the `trainer` container works, GPU passthrough verified 2026-09-23.
+
 ## Open decisions
-1. Is git fine for checkpoints? It's needed for the ratchet.
-2. Escalation model: Qwen2.5-Coder-3B is under a **research-only licence**. Keep it (fine for personal/research use),
-   or swap to the 7B (Apache 2.0, ~4.7 GB, loaded on demand) if the work may ever be commercial.
-3. ~~WSL2 for training~~ — resolved: the `trainer` container works, GPU passthrough verified 2026-09-23.
+_None. Building._
 
 ## Measured on this machine (2026-09-23)
 llama.cpp build 11105, CUDA 12.4, RTX 3060 12 GB. Warm load / GPU memory / first request:

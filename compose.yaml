@@ -1,0 +1,71 @@
+# Model services. One model per service, each on its own port, all on the GPU.
+# Start:  docker compose up -d
+# Stop:   docker compose down
+# The 3B escalation model only starts with:  docker compose --profile escalate up -d
+name: agents
+
+x-llama: &llama
+  image: ghcr.io/ggml-org/llama.cpp:server-cuda
+  restart: unless-stopped
+  gpus: all
+  volumes:
+    - ${MODELS_DIR:-E:/models/gguf}:/models:ro
+  networks: [agents]
+  healthcheck:
+    test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+    interval: 5s
+    timeout: 3s
+    retries: 30
+    start_period: 60s
+
+services:
+  llm-coder:
+    <<: *llama
+    container_name: agents-llm-coder
+    ports: ["18001:8080"]
+    command: >
+      -m /models/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf
+      --host 0.0.0.0 --port 8080 -ngl 99 -c 32768 --parallel 4 --cont-batching
+      --alias coder
+
+  llm-general:
+    <<: *llama
+    container_name: agents-llm-general
+    ports: ["18002:8080"]
+    command: >
+      -m /models/MiniCPM5-1B-Q4_K_M.gguf
+      --host 0.0.0.0 --port 8080 -ngl 99 -c 16384 --parallel 2 --cont-batching
+      --alias general
+
+  llm-vision:
+    <<: *llama
+    container_name: agents-llm-vision
+    ports: ["18003:8080"]
+    command: >
+      -m /models/MiniCPM-V-4_6-Q4_K_M.gguf
+      --mmproj /models/MiniCPM-V-4_6-mmproj-f16.gguf
+      --host 0.0.0.0 --port 8080 -ngl 99 -c 8192
+      --alias vision
+
+  llm-embed:
+    <<: *llama
+    container_name: agents-llm-embed
+    ports: ["18004:8080"]
+    command: >
+      -m /models/nomic-embed-text-v1.5.Q8_0.gguf
+      --host 0.0.0.0 --port 8080 -ngl 99 -c 2048 --embedding --pooling mean
+      --alias embed
+
+  llm-escalate:
+    <<: *llama
+    container_name: agents-llm-escalate
+    profiles: [escalate]
+    ports: ["18005:8080"]
+    command: >
+      -m /models/qwen2.5-coder-3b-instruct-q4_k_m.gguf
+      --host 0.0.0.0 --port 8080 -ngl 99 -c 16384 --parallel 2 --cont-batching
+      --alias escalate
+
+networks:
+  agents:
+    name: agents

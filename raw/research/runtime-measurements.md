@@ -23,6 +23,24 @@ grammars, parallel slots and explicit process control.
 
 **Four core models: 4.4 GB GPU.** With the 3B: 6.7 GB. Desktop already uses ~1.1 GB. Headroom on 12 GB is ample.
 
+## Containerised, measured 2026-09-23 (Docker 29.7.2, `ghcr.io/ggml-org/llama.cpp:server-cuda`, GPU passthrough)
+All four model services healthy, **6.3 GB GPU total** (includes ~1.1 GB desktop; coder at 32K context, 4 slots).
+
+| Measurement | Result |
+|---|---|
+| Coder, single request | 156 tokens in 1.2 s = **126 tok/s** |
+| General, single request | 300 tokens in 1.2 s = **247 tok/s** |
+| **Coder, 4 candidates in parallel** | 693 tokens in **1.7 s** = 399 tok/s aggregate |
+| Embeddings | 16 texts in 0.11 s |
+| Cold start of all four services | ~90 s (image already pulled) |
+
+**Consequence:** one card's four candidates cost **under 2 seconds**. A 30-card project is minutes of model time,
+so wall-clock cost is dominated by running tests in sandboxes, not by inference. Objection #6 in
+[[open-objections]] is therefore about *your attention*, not about compute.
+
+**Also observed:** the sample answer looked plausible and was wrong — `re.match` on `'2h30m'` parses only the first
+component. Exactly the failure mode [[test-quality]] describes: only a real test catches it.
+
 ## Caveats
 - These are **warm** loads; the files were already in the Windows cache. True cold loads could not be measured —
   even a 2-month-old file read at 2,000 MB/s, above SATA speed, and `winsat` needs admin. Estimated cold from

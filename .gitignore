@@ -6,3 +6,5 @@ workspace/
 models/
 tools/
 *.gguf
+
+.env
