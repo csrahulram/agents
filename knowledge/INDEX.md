@@ -37,5 +37,6 @@ than nested, so the folder opens as a graph in Obsidian.
 
 ## Our own measurements and choices
 - [[runtime-measurements]] — llama.cpp on the RTX 3060, measured
+- [[loop-mechanisms-measured]] — candidates vs retries, fresh vs carried context, escalation: our own numbers
 - [[model-lineup]] — models, scores, licences
 - [[open-objections]] — the unanswered arguments against the design
