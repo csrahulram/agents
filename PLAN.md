@@ -81,6 +81,7 @@ previous version keeps serving. Everything stays local; nothing is published.
 | Layer | Contents | Who writes | Properties |
 |---|---|---|---|
 | **RAW** | goal/spec, acceptance tests, `RULES.md`, instruction files, approved lessons, setup facts, **the benchmark, the chaos suite, `promotion.toml`** | **Human only.** The permissions gate rejects every agent write. | Versioned `raw/v1, v2…` with git tags. Frozen during a run. |
+| **KNOWLEDGE** (`knowledge/`) | the research library: evidence notes, sources, papers | **Human only, read-only even to the owner's tools.** Read freely, write never — the permissions gate treats it like RAW. | Changes only under supervision, with the reason recorded |
 | **Proposals** | `proposals/raw-v{N+1}/`: suggested RAW changes, each with evidence (failed cards, metrics, log lines) and an automatic before/after test | Agents suggest; the human approves or rejects | Rejections are recorded so the same idea can't return |
 | **WIKI** | tape cards, memory notes, summaries, the search index, generated code, `models.toml` | Agents, through the gates and the ratchet | **Disposable:** can always be rebuilt from RAW + logs |
 
@@ -107,7 +108,7 @@ core/
   context.py       builds each card's context: contract signatures + retrieved code + memory
   memory.py        short-term / long-term / project state (kept from the current code)
 raw/               human-owned ground truth: RULES.md, instructions, benchmark, chaos suite, promotion.toml
-knowledge/         the research wiki: linked markdown notes + papers/ (PDFs git-ignored, fetch.py rebuilds them)
+knowledge/         READ-ONLY library: research notes + papers/. Changes only by the owner, never by an agent.
 proposals/         agent-suggested RAW changes, awaiting human review
 bench/             model benchmark tasks (frozen: the same tasks score every model version)
 station/           model station: dataset.py, train.py, eval.py, registry.py, configs/
@@ -146,7 +147,7 @@ workspace/<p>/     project code + tape/ + CONTRACT.md + LOG.md
 - **Checkpoint:** kill the process at random points 100 times, and the tape is never corrupted.
 
 ### Phase 4: Gates
-- Format → permissions (only the card's own files, only allowed state changes) → **structure** (one public function
+- Format → permissions (only the card's own files, only allowed state changes, **never `raw/` or `knowledge/`**) → **structure** (one public function
   per file, name matches the file, signature matches `CONTRACT.md`) → sanity (compiles, imports resolve, no
   placeholders) → the card's test → no previously passing test now fails.
 - Every command runs in an **ephemeral sandbox container**: no network, read-only except `/work`, CPU/memory caps,

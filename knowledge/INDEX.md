@@ -6,8 +6,11 @@ updated: 2026-09-23
 
 # Research Index
 
-Evidence behind the design in [[../PLAN|PLAN]]. Every claim here carries a source. This folder is human-owned
-reference material: agents may read it, never write it. Notes are atomic — one topic each — and linked rather
+> **Library rules.** This folder is **read-only**. Nothing here — notes, sources, papers — changes without the
+> owner's explicit approval, including corrections. Agents may never write to `knowledge/`; the permissions gate
+> rejects it. Proposals go to `proposals/`, with the evidence attached, and wait.
+
+Evidence behind the design in [[../PLAN|PLAN]]. Every claim here carries a source. Notes are atomic — one topic each — and linked rather
 than nested, so the folder opens as a graph in Obsidian.
 
 **Papers:** [[papers/sources|every cited URL]], and 16 PDFs in `papers/` — not committed, rebuilt with
